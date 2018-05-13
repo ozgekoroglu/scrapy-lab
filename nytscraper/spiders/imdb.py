@@ -14,6 +14,12 @@ def get_actor_id(actor_url):
     regex = r"(nm[0-9]+)"
     return re.findall(regex, actor_url)[0]
 
+def check_year(year):
+    return 1980<year and year<1990
+
+def is_valid_year(year):
+    return year.isnumeric()
+
 
 class imdbSpider(scrapy.Spider):
     name = 'imdb'
@@ -22,55 +28,42 @@ class imdbSpider(scrapy.Spider):
     start_urls = ["https://www.imdb.com/title/tt0096463/fullcredits/"]
 
     def parse(self, response):
+        movie_name = response.xpath('.//h3[@itemprop="name"]/a/text()').extract_first()
+        movie_year = cleanString(response.xpath('.//h3[@itemprop="name"]/span/text()').extract_first())
         for actor in response.css(".cast_list tr"):
-            print("*********************************************")
             actor_name = actor.xpath('td[2]/a/span/text()').extract_first()
-            if(actor_name == None):
+            if actor_name == None:
                 continue
-            print(actor_name)
-            actor_id = actor.xpath('td[4]/a/text()').extract_first()
-            # yield {
-            #         'movie_id': get_movie_id(response.url),
-            #         'movie_name': actor.css('.parent>a::text').extract_first(),
-            #         'movie_year': get_movie_id(response.url),
-            #         'movie_id': get_movie_id(response.url),
-            #         'actor_name': actor.xpath('td[2]/a/span/text()').extract_first(), # works
-            #         'actor_id': get_actor_id(actor_url),
-            #         'role_name': actor.xpath('td[4]/a/text()').extract_first(), # works
-            #     }
-
-
-
-        # movie_name = response.css('div.parent>a::text').extract_first()
-        # print(movie_name)
-        # for actor in response.css("table.cast_list .itemprop"):
-        #     actor_url = self.domain + actor.css('.itemprop>a::attr(href)').extract_first()
-        #     print(actor_url)
-        #     yield {
-        #         'movie_id': get_movie_id(response.url),
-        #         'movie_name': actor.css('.parent>a::text').extract_first(),
-        #         'movie_year': get_movie_id(response.url),
-        #         'movie_id': get_movie_id(response.url),
-        #         'actor_name': cleanString(actor.css('.itemprop>a::text').extract_first()),
-        #         'actor_id': get_actor_id(actor_url),
-        #         'role_name': cleanString(actor.css('p.byline::text').extract_first())
-        #     }
-        #     next_page = actor_url
-        #     if next_page is not None:
-        #         yield response.follow(next_page, callback=self.parse_actor)
+            role_name = actor.xpath('td[4]/a/text()').extract_first() # Get role names that are linked to an IMDB page
+            if role_name == None: # Get role names that are not linked to an IMDB page
+                role_name = cleanString(actor.xpath('td[4]/text()').extract_first().split())
+            actor_url = actor.xpath('td[2]/a[1]/@href').extract_first()
+            actor_url = actor_url[:actor_url.find('?')]
+            yield {
+                    'movie_id': get_movie_id(response.url), # works
+                    'movie_name': movie_name,
+                    'movie_year': movie_year,
+                    'actor_name': cleanString(actor_name), # works
+                    'actor_id': get_actor_id(actor_url), # works
+                    'role_name': cleanString(role_name) # works
+                }
+            next_page = actor_url
+            if next_page is not None:
+                yield response.follow(next_page, callback=self.parse_actor)
 
     def parse_actor(self, response):
-        for article in response.css("section.top-news article.story"):
-            article_url = article.css('.story-heading>a::attr(href)').extract_first()
-            yield {
-                'appears_ulr': response.url,
-                'title': cleanString(article.css('.story-heading>a::text').extract_first()),
-                'article_url': article_url,
-                'author': cleanString(article.css('p.byline::text').extract_first()),
-                'summary': cleanString(article.css('p.summary::text').extract_first()) + cleanString(
-                    ' '.join(article.css('ul *::text').extract())),
-            }
-            next_page = article_url
+        for movie in response.xpath("//*[contains(@class,'filmo-category-section')]/div"):
+            type = movie.xpath('/text()[1]').extract_first()
+            if '(TV Series)' or '(Video Game)' or ('TV Mini-Series') in type:
+                continue
+            movie_year = cleanString(movie.xpath('span[1]/text()').extract_first().strip())
+            if not is_valid_year(movie_year) or not check_year(int(movie_year)):
+                continue
+            # print(movie_year)
+            movie_url = cleanString(movie.xpath('b[1]/a[1]/@href').extract_first())
+            movie_url = movie_url[:movie_url.find('?')]
+            next_page = movie_url
             if next_page is not None:
-                yield response.follow(next_page, callback=self.parse_article)
+                yield response.follow(next_page, callback=self.parse)
+
 
