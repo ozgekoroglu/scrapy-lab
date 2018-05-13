@@ -2,19 +2,6 @@
 import scrapy
 import unidecode
 import re
-import os
-
-from elasticsearch import Elasticsearch
-
-ELASTIC_API_URL_HOST = os.environ['ELASTIC_API_URL_HOST']
-ELASTIC_API_URL_PORT = os.environ['ELASTIC_API_URL_PORT']
-ELASTIC_API_USERNAME = os.environ['ELASTIC_API_USERNAME']
-ELASTIC_API_PASSWORD = os.environ['ELASTIC_API_PASSWORD']
-
-es=Elasticsearch(host=ELASTIC_API_URL_HOST,
-                 scheme='https',
-                 port=ELASTIC_API_URL_PORT,
-                 http_auth=(ELASTIC_API_USERNAME,ELASTIC_API_PASSWORD))
 
 cleanString = lambda x: '' if x is None else unidecode.unidecode(re.sub(r'\s+',' ',x))
 
@@ -52,19 +39,16 @@ class imdbSpider(scrapy.Spider):
                 role_name = cleanString(actor.xpath('td[4]/text()').extract_first().split())
             actor_url = actor.xpath('td[2]/a[1]/@href').extract_first()
             actor_url = actor_url[:actor_url.find('?')]
-            es.index(index='imdb',
-                     type='movies',
-                     body={
-                        'movie_id': get_movie_id(response.url), # works
-                        'movie_name': movie_name,
-                        'movie_year': movie_year,
-                        'actor_name': cleanString(actor_name), # works
-                        'actor_id': get_actor_id(actor_url), # works
-                        'role_name': cleanString(role_name) # works
-                     })
-
+            yield {
+                    'movie_id': get_movie_id(response.url), # works
+                    'movie_name': movie_name,
+                    'movie_year': movie_year,
+                    'actor_name': cleanString(actor_name), # works
+                    'actor_id': get_actor_id(actor_url), # works
+                    'role_name': cleanString(role_name) # works
+                }
             next_page = actor_url
-            # print("Next actor page: " + actor_url + " for actor " + actor_name)
+            print("Next actor page: " + actor_url + " for actor " + actor_name)
             if next_page is not None:
                 yield response.follow(next_page, callback=self.parse_actor)
 
