@@ -48,21 +48,23 @@ class imdbSpider(scrapy.Spider):
                     'role_name': cleanString(role_name) # works
                 }
             next_page = actor_url
+            print("Next actor page: " + actor_url + " for actor " + actor_name)
             if next_page is not None:
                 yield response.follow(next_page, callback=self.parse_actor)
 
     def parse_actor(self, response):
         for movie in response.xpath("//*[contains(@class,'filmo-category-section')]/div"):
-            type = movie.xpath('/text()[1]').extract_first()
-            if '(TV Series)' or '(Video Game)' or ('TV Mini-Series') in type:
-                continue
+            # type = movie.css("#text").extract_first()
+            # print(type)
+            # if '(TV Series)' or '(Video Game)' or ('TV Mini-Series') or '(TV Series short)' or 'Short Video' in type:
+            #     continue
             movie_year = cleanString(movie.xpath('span[1]/text()').extract_first().strip())
             if not is_valid_year(movie_year) or not check_year(int(movie_year)):
                 continue
-            # print(movie_year)
             movie_url = cleanString(movie.xpath('b[1]/a[1]/@href').extract_first())
-            movie_url = movie_url[:movie_url.find('?')]
+            movie_url = movie_url[:movie_url.find('?')] + 'fullcredits/'
             next_page = movie_url
+            print("Next page: " + next_page + " " + movie_year)
             if next_page is not None:
                 yield response.follow(next_page, callback=self.parse)
 
