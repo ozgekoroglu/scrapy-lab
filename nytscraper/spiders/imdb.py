@@ -11,10 +11,10 @@ ELASTIC_API_URL_PORT = os.environ['ELASTIC_API_URL_PORT']
 ELASTIC_API_USERNAME = os.environ['ELASTIC_API_USERNAME']
 ELASTIC_API_PASSWORD = os.environ['ELASTIC_API_PASSWORD']
 
-es=Elasticsearch(host=ELASTIC_API_URL_HOST,
-                 scheme='https',
-                 port=ELASTIC_API_URL_PORT,
-                 http_auth=(ELASTIC_API_USERNAME,ELASTIC_API_PASSWORD))
+es = Elasticsearch(host=ELASTIC_API_URL_HOST,
+                   scheme='https',
+                   port=ELASTIC_API_URL_PORT,
+                   http_auth=(ELASTIC_API_USERNAME, ELASTIC_API_PASSWORD))
 
 cleanString = lambda x: '' if x is None else unidecode.unidecode(re.sub(r'\s+',' ',x))
 
@@ -40,6 +40,7 @@ class imdbSpider(scrapy.Spider):
     allowed_domains = [domain]
     start_urls = ["https://www.imdb.com/title/tt0096463/fullcredits/"]
 
+
     def parse(self, response):
         movie_name = response.xpath('.//h3[@itemprop="name"]/a/text()').extract_first()
         movie_year = cleanString(response.xpath('.//h3[@itemprop="name"]/span/text()').extract_first())
@@ -53,7 +54,7 @@ class imdbSpider(scrapy.Spider):
             actor_url = actor.xpath('td[2]/a[1]/@href').extract_first()
             actor_url = actor_url[:actor_url.find('?')]
             es.index(index='imdb',
-                     type='movies',
+                     doc_type='movies',
                      body={
                         'movie_id': get_movie_id(response.url), # works
                         'movie_name': movie_name,
@@ -80,7 +81,7 @@ class imdbSpider(scrapy.Spider):
             movie_url = cleanString(movie.xpath('b[1]/a[1]/@href').extract_first())
             movie_url = movie_url[:movie_url.find('?')] + 'fullcredits/'
             next_page = movie_url
-            print("Next page: " + next_page + " " + movie_year)
+            # print("Next page: " + next_page + " " + movie_year)
             if next_page is not None:
                 yield response.follow(next_page, callback=self.parse)
 
