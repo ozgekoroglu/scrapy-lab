@@ -27,11 +27,8 @@ def get_actor_id(actor_url):
     regex = r"(nm[0-9]+)"
     return re.findall(regex, actor_url)[0]
 
-def check_year(year):
-    return 1980<year and year<1990
-
 def is_valid_year(year):
-    return year.isnumeric()
+    return year.isnumeric() and 1980<int(year) and int(year)<1990
 
 
 class imdbSpider(scrapy.Spider):
@@ -43,7 +40,9 @@ class imdbSpider(scrapy.Spider):
 
     def parse(self, response):
         movie_name = response.xpath('.//h3[@itemprop="name"]/a/text()').extract_first()
-        movie_year = cleanString(response.xpath('.//h3[@itemprop="name"]/span/text()').extract_first())
+        movie_year = cleanString(response.xpath('.//h3[@itemprop="name"]/span/text()').extract_first().strip())
+        movie_year = re.findall('\d+', movie_year ).pop() # get only numbers from year
+        # print("Movie Year " + str(movie_year) + " Movie Name " + movie_name)
         for actor in response.css(".cast_list tr"):
             actor_name = actor.xpath('td[2]/a/span/text()').extract_first()
             if actor_name == None:
@@ -53,16 +52,25 @@ class imdbSpider(scrapy.Spider):
                 role_name = cleanString(actor.xpath('td[4]/text()').extract_first().split())
             actor_url = actor.xpath('td[2]/a[1]/@href').extract_first()
             actor_url = actor_url[:actor_url.find('?')]
-            es.index(index='imdb',
-                     doc_type='movies',
-                     body={
-                        'movie_id': get_movie_id(response.url), # works
-                        'movie_name': movie_name,
-                        'movie_year': movie_year,
-                        'actor_name': cleanString(actor_name), # works
-                        'actor_id': get_actor_id(actor_url), # works
-                        'role_name': cleanString(role_name) # works
-                     })
+            yield {
+                'movie_id': get_movie_id(response.url),  # works
+                'movie_name': movie_name,
+                'movie_year': movie_year,
+                'actor_name': cleanString(actor_name),  # works
+                'actor_id': get_actor_id(actor_url),  # works
+                'role_name': cleanString(role_name)  # works
+            }
+
+            # es.index(index='imdb',
+            #          doc_type='movies',
+            #          body={
+            #             'movie_id': get_movie_id(response.url), # works
+            #             'movie_name': movie_name,
+            #             'movie_year': movie_year,
+            #             'actor_name': cleanString(actor_name), # works
+            #             'actor_id': get_actor_id(actor_url), # works
+            #             'role_name': cleanString(role_name) # works
+            #          })
 
             next_page = actor_url
             # print("Next actor page: " + actor_url + " for actor " + actor_name)
@@ -70,13 +78,15 @@ class imdbSpider(scrapy.Spider):
                 yield response.follow(next_page, callback=self.parse_actor)
 
     def parse_actor(self, response):
-        for movie in response.xpath("//*[contains(@class,'filmo-category-section')]/div"):
-            # type = movie.css("#text").extract_first()
-            # print(type)
-            # if '(TV Series)' or '(Video Game)' or ('TV Mini-Series') or '(TV Series short)' or 'Short Video' in type:
-            #     continue
+        for movie in response.xpath("//*[contains(@class,'filmo-category-section')][1]/div"):
+            # get only the films the person is an actor in (not producer, writer, etc.)
+
+            type = movie.css("::text") # get ONLY movies (not series, video games, etc.)
+            if '(TV Series)' in str(type) or '(Video Game)' in str(type) or ('TV Mini-Series') in str(type) \
+                    or '(TV Series short)' in str(type) or '(Short Video)' in str(type):
+                continue
             movie_year = cleanString(movie.xpath('span[1]/text()').extract_first().strip())
-            if not is_valid_year(movie_year) or not check_year(int(movie_year)):
+            if not is_valid_year(movie_year):
                 continue
             movie_url = cleanString(movie.xpath('b[1]/a[1]/@href').extract_first())
             movie_url = movie_url[:movie_url.find('?')] + 'fullcredits/'
