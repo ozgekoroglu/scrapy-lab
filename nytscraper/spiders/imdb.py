@@ -52,28 +52,28 @@ class imdbSpider(scrapy.Spider):
                 role_name = cleanString(actor.xpath('td[4]/text()').extract_first().split())
             actor_url = actor.xpath('td[2]/a[1]/@href').extract_first()
             actor_url = actor_url[:actor_url.find('?')]
-            yield {
-                'movie_id': get_movie_id(response.url),  # works
-                'movie_name': movie_name,
-                'movie_year': movie_year,
-                'actor_name': cleanString(actor_name),  # works
-                'actor_id': get_actor_id(actor_url),  # works
-                'role_name': cleanString(role_name)  # works
-            }
+            # yield {
+            #     'movie_id': get_movie_id(response.url),  # works
+            #     'movie_name': movie_name,
+            #     'movie_year': movie_year,
+            #     'actor_name': cleanString(actor_name),  # works
+            #     'actor_id': get_actor_id(actor_url),  # works
+            #     'role_name': cleanString(role_name)  # works
+            # }
 
-            # es.index(index='imdb',
-            #          doc_type='movies',
-            #          body={
-            #             'movie_id': get_movie_id(response.url), # works
-            #             'movie_name': movie_name,
-            #             'movie_year': movie_year,
-            #             'actor_name': cleanString(actor_name), # works
-            #             'actor_id': get_actor_id(actor_url), # works
-            #             'role_name': cleanString(role_name) # works
-            #          })
+            es.index(index='imdb2',
+                     doc_type='movies',
+                     body={
+                        'movie_id': get_movie_id(response.url), # works
+                        'movie_name': movie_name,
+                        'movie_year': movie_year,
+                        'actor_name': cleanString(actor_name), # works
+                        'actor_id': get_actor_id(actor_url), # works
+                        'role_name': cleanString(role_name) # works
+                     })
 
             next_page = actor_url
-            # print("Next actor page: " + actor_url + " for actor " + actor_name)
+            print("Next actor page: " + actor_url + " for actor " + actor_name)
             if next_page is not None:
                 yield response.follow(next_page, callback=self.parse_actor)
 
@@ -83,7 +83,8 @@ class imdbSpider(scrapy.Spider):
 
             type = movie.css("::text") # get ONLY movies (not series, video games, etc.)
             if '(TV Series)' in str(type) or '(Video Game)' in str(type) or ('TV Mini-Series') in str(type) \
-                    or '(TV Series short)' in str(type) or '(Short Video)' in str(type):
+                    or '(TV Series short)' in str(type) or '(Short Video)' in str(type) or ('TV Series documentary') in str(type) \
+                    or ('Video') in str(type) or '(TV Mini-Series documentary)' in str(type) or '(TV Short)' in str(type):
                 continue
             movie_year = cleanString(movie.xpath('span[1]/text()').extract_first().strip())
             if not is_valid_year(movie_year):
