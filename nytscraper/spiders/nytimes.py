@@ -15,6 +15,7 @@ class NytimesSpider(scrapy.Spider):
     def parse(self, response):
         for article in response.css("section.top-news article.story"):
             article_url = article.css('.story-heading>a::attr(href)').extract_first()
+            print(article_url)
             yield {
                 'appears_ulr': response.url,
                 'title': cleanString(article.css('.story-heading>a::text').extract_first()),
