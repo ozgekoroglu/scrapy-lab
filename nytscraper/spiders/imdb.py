@@ -36,7 +36,7 @@ class imdbSpider(scrapy.Spider):
     name = 'imdb'
     domain = 'www.imdb.com'
     allowed_domains = [domain]
-    start_urls = ["https://www.imdb.com/title/tt0451279/fullcredits"]
+    start_urls = ["https://www.imdb.com/title/tt0096463/fullcredits/"]
 
     # Parsing the movie's full credits page
     def parse(self, response):
@@ -54,12 +54,12 @@ class imdbSpider(scrapy.Spider):
             actor_url = actor.xpath('td[2]/a[1]/@href').extract_first()
             actor_url = actor_url[:actor_url.find('?')]
             # yield {
-            #     'movie_id': get_movie_id(response.url),  
+            #     'movie_id': get_movie_id(response.url),
             #     'movie_name': movie_name,
             #     'movie_year': movie_year,
-            #     'actor_name': cleanString(actor_name),  
-            #     'actor_id': get_actor_id(actor_url),  
-            #     'role_name': cleanString(role_name)  
+            #     'actor_name': cleanString(actor_name),
+            #     'actor_id': get_actor_id(actor_url),
+            #     'role_name': cleanString(role_name)
             # }
 
             es.index(index='imdb',
@@ -88,7 +88,8 @@ class imdbSpider(scrapy.Spider):
 
             type = movie.css("::text") # get ONLY movies (not series, video games, etc.)
             if '(TV Series)' in str(type) or '(Video Game)' in str(type) or ('TV Mini-Series') in str(type) \
-                    or '(TV Series short)' in str(type) or '(Short Video)' in str(type):
+                    or '(TV Series short)' in str(type) or '(Short Video)' in str(type) or ('TV Series documentary') in str(type) \
+                    or ('Video') in str(type) or '(TV Mini-Series documentary)' in str(type) or '(TV Short)' in str(type):
                 continue
             movie_year = cleanString(movie.xpath('span[1]/text()').extract_first().strip())
             if not is_valid_year(movie_year):
@@ -122,10 +123,10 @@ class imdbSpider(scrapy.Spider):
             es.index(index='imdb_budget',
                      doc_type='movies',
                      body={
-                         'movie_id': get_movie_id(response.url),  
+                         'movie_id': get_movie_id(response.url),
                          'movie_name': movie_name,
-                         'budget': budget_amount,  
-                         'gross': gross_amount  
+                         'budget': budget_amount,
+                         'gross': gross_amount
                      })
 
 
