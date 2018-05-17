@@ -13,7 +13,9 @@
 3. A bard diagram showing the filming activity for each year (plot the total count of records per year).
 ![Chart3](img/movie_year.png)
 
-4. Finally for the custom question we chose to scrape IMDb to identify the most successful movies in the 21st century in terms of financial terms. In other words, we plot the profit for each movie (percentage) based on the budget spent in its production and its world cumulative gross. For this purpose we wrote a new parsing function `parse_movie` which parses the movie's IMDB page before scraping the actors' pages from the movie credits' page.
+4. Finally for the custom question we chose to scrape IMDb to identify the most successful movies in the 21st century in terms of financial terms. In other words, we plot the Return of Investment (ROI) for each movie based on the budget spent in its production and its world cumulative gross. For this purpose we wrote a new parsing function `parse_movie` which parses the movie's IMDB page before scraping the actors' pages from the movie credits' page. Note that:
+<img src="http://www.sciweavers.org/tex2img.php?eq=%20ROI%20%3D%20%5Cfrac%7Bgross%20-%20budget%7D%7Bbudget%7D%2A100%20&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0" align="center" border="0" alt=" ROI = \frac{gross - budget}{budget}*100 " width="242" height="47" />
+![ChartROI](img/ROI.png)
 
 #### Q75: How long have you been working on this session? What have been the main difficulties you have faced and how have you solved them?
 
