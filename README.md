@@ -17,4 +17,4 @@
 
 #### Q75: How long have you been working on this session? What have been the main difficulties you have faced and how have you solved them?
 
-We have worked approximately 10 hours each for this session, mainly in order to get acquinted with scrapy. Scraping IMDb and debugging scrapy e.g. realise that the domain name should not be included in the redirection links, took most of our time. Getting started with elastic and kibana was pretty easy with the provided package. 
+We have worked approximately 10 hours each for this session, mainly in order to get acquinted with scrapy. Scraping IMDb and debugging scrapy e.g. realise that the domain name should not be included in the redirection links, took most of our time. Getting started with elastic and kibana was pretty easy with the provided package. Moreover, for the final part, we realised that there is a lack of information in IMDb regarding the finanes of many movies and it is hard with scrapy to gain control over which movie pages you scrape. It is possible that it gets stuck in a 'cluster' of movies with no financial information available.
