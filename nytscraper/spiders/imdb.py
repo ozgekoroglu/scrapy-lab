@@ -36,7 +36,7 @@ class imdbSpider(scrapy.Spider):
     name = 'imdb'
     domain = 'www.imdb.com'
     allowed_domains = [domain]
-    start_urls = ["https://www.imdb.com/title/tt0096463/fullcredits/"]
+    start_urls = ["https://www.imdb.com/title/tt2873282/fullcredits/"]
 
     # Parsing the movie's full credits page
     def parse(self, response):
@@ -44,7 +44,14 @@ class imdbSpider(scrapy.Spider):
         movie_year = cleanString(response.xpath('.//h3[@itemprop="name"]/span/text()').extract_first().strip())
         movie_year = re.findall('\d+', movie_year ).pop() # get only numbers from year
         # print("Movie Year " + str(movie_year) + " Movie Name " + movie_name)
+        counter = 0
         for actor in response.css(".cast_list tr"):
+            # using counter for scraping movie pages faster when gathering information about financials
+            # for gathering information about actors, please comment out the counter part of the code
+            counter+=1
+            if(counter==3):
+                break
+
             actor_name = actor.xpath('td[2]/a/span/text()').extract_first()
             if actor_name == None:
                 continue
@@ -62,16 +69,16 @@ class imdbSpider(scrapy.Spider):
             #     'role_name': cleanString(role_name)
             # }
 
-            es.index(index='imdb',
-                     doc_type='movies',
-                     body={
-                        'movie_id': get_movie_id(response.url),
-                        'movie_name': movie_name,
-                        'movie_year': movie_year,
-                        'actor_name': cleanString(actor_name),
-                        'actor_id': get_actor_id(actor_url),
-                        'role_name': cleanString(role_name)
-                     })
+            # es.index(index='imdb',
+            #          doc_type='movies',
+            #          body={
+            #             'movie_id': get_movie_id(response.url),
+            #             'movie_name': movie_name,
+            #             'movie_year': movie_year,
+            #             'actor_name': cleanString(actor_name),
+            #             'actor_id': get_actor_id(actor_url),
+            #             'role_name': cleanString(role_name)
+            #          })
 
             yield response.follow(response.url.replace("/fullcredits", ""), callback=self.parse_movie)
             next_page = actor_url
@@ -110,23 +117,25 @@ class imdbSpider(scrapy.Spider):
             except IndexError:
                 header = ""
             if(header == "Budget:"):
-                budget_amount = cleanString(div_element.css("::text")[2].extract().replace('$',''))
+                budget_amount = int(cleanString(div_element.css("::text")[2].extract().replace('$','').replace(',', '')))
             elif(header == "Cumulative Worldwide Gross:"):
-                gross_amount = cleanString(div_element.css("::text")[2].extract().replace('$',''))
+                gross_amount = int(cleanString(div_element.css("::text")[2].extract().replace('$','').replace(',', '')))
         print("-----------------------" + movie_name + "-----------------------")
         try:
             budget_amount and gross_amount
         except NameError:
             print("Data N/A")
         else:
-            print("Budget: " + budget_amount + " Gross: " + gross_amount)
-            es.index(index='imdb_budget',
+            print("Budget: " + str(budget_amount) + " Gross: " + str(gross_amount))
+            percentage = (gross_amount - budget_amount)/budget_amount*100
+            es.index(index='imdb_budget_numbers',
                      doc_type='movies',
                      body={
                          'movie_id': get_movie_id(response.url),
                          'movie_name': movie_name,
                          'budget': budget_amount,
-                         'gross': gross_amount
+                         'gross': gross_amount,
+                         'percentage': percentage
                      })
 
 
